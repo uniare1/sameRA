@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import android.content.Context;
+import android.graphics.Rect;
 import android.hardware.Camera;
 import android.hardware.Camera.Size;
 import android.util.AttributeSet;
@@ -29,7 +30,7 @@ public class CameraPreview extends SurfaceView implements Callback {
 
 	public CameraPreview(Context context) {
 		super(context);
-		// TODO Auto-generated constructor stub
+
 	}
 
 	public CameraPreview(Context context, Camera camera) {
@@ -68,9 +69,13 @@ public class CameraPreview extends SurfaceView implements Callback {
 
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
+		
 		try {
+			if(mCamera == null) {
+				mCamera = Camera.open();
+			}
 			mCamera.setPreviewDisplay(holder);
-//			mCamera.startPreview();
+			mCamera.startPreview();
 		} catch (IOException e) {
 			mCamera.release();
 			mCamera = null;
@@ -79,9 +84,15 @@ public class CameraPreview extends SurfaceView implements Callback {
 
 	@Override
 	public void surfaceDestroyed(SurfaceHolder holder) {
+		mCamera.stopPreview();
 		mCamera.release();
-//		mCamera.stopPreview();
 		mCamera = null;
 	}
 
+	@Override
+	protected boolean fitSystemWindows(Rect insets) {
+		// TODO Auto-generated method stub
+		return super.fitSystemWindows(insets);
+	}
+	
 }

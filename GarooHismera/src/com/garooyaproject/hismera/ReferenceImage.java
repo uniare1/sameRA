@@ -5,6 +5,7 @@ import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.util.Log;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
 import android.widget.RelativeLayout;
@@ -22,7 +23,7 @@ public class ReferenceImage {
 		mScreenSize = size;
 		
         LayoutParams lp = (LayoutParams) mImageView.getLayoutParams();
-        mLayoutParams = new LayoutParams(lp);
+        mLayoutParams = new LayoutParams((ViewGroup.LayoutParams)lp);
         int [] rules = lp.getRules();
         int length = rules.length;
         for(int index = 0; index < length; index++) {
@@ -46,7 +47,7 @@ public class ReferenceImage {
 				lp.addRule(index, 0);
 			}			
 			
-			lp.addRule(RelativeLayout.CENTER_IN_PARENT);
+//			lp.addRule(RelativeLayout.CENTER_IN_PARENT);
 			lp.width = LayoutParams.WRAP_CONTENT;
 			lp.height = LayoutParams.WRAP_CONTENT;
 			lp.rightMargin = 0;
@@ -55,7 +56,7 @@ public class ReferenceImage {
 		} else {
 			mIsSmallView = true;
 			drawable.setAlpha(255);		
-			lp = new LayoutParams(mLayoutParams);
+			lp = new LayoutParams((ViewGroup.LayoutParams)mLayoutParams);
 			
 			int rules[] = mLayoutParams.getRules();
 			int length = rules.length;
@@ -65,7 +66,7 @@ public class ReferenceImage {
 		}
 		mImageView.setLayoutParams(lp);
 		mImageView.setAdjustViewBounds(true);
-		mImageView.setScaleType(ScaleType.CENTER_INSIDE);		
+		mImageView.setScaleType(ScaleType.CENTER_INSIDE);
 	}
 	
 	public void setOnClickListener(OnClickListener listener) {
@@ -73,6 +74,11 @@ public class ReferenceImage {
 	}
 	
 	public void setImageBitmap(Bitmap bitmap) {
+		
+		if(bitmap == null) {
+			mImageView.setImageBitmap(null);
+			return;
+		}
 		
         float y = (float) mScreenSize.y / (float) bitmap.getHeight();
         float x = (float) mScreenSize.x / (float) bitmap.getWidth();
@@ -97,7 +103,6 @@ public class ReferenceImage {
         Log.d("Scale", "scaleX = " + scaleX + ", scaleY = " + scaleY );
         
         Bitmap image = Bitmap.createScaledBitmap(bitmap, scaleX, scaleY, false);
-		
 		
 		mImageView.setImageBitmap(image);
 	}

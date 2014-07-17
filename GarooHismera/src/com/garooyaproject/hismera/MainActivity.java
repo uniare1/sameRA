@@ -10,6 +10,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutionException;
 
 import android.app.Activity;
 import android.app.AlarmManager;
@@ -30,6 +31,8 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.media.ExifInterface;
+import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -37,9 +40,11 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 public class MainActivity extends Activity implements OnClickListener
@@ -112,13 +117,12 @@ public class MainActivity extends Activity implements OnClickListener
         mPreview.setFitsSystemWindows(true);
         
         FrameLayout fl = (FrameLayout) findViewById(R.id.camera_preview);
-
         fl.addView(mPreview);
         
         Button button = (Button) findViewById(R.id.button1);
         button.setOnClickListener(this);
         
-        Point screenSize = new Point(960, 720);
+        Point screenSize = new Point(0, 0);
         getWindowManager().getDefaultDisplay().getSize(screenSize);
 
         ImageView imageView = (ImageView) findViewById(R.id.imageView1);
@@ -128,30 +132,85 @@ public class MainActivity extends Activity implements OnClickListener
         
         // TODO: has to change
         // 해당 위치에 있는 기존의 사진
-        Bitmap bitmap = getImage(mLocation, 1);
-        mReferenceImage.setImageBitmap(bitmap);
+//        Bitmap bitmap = getImage(mLocation, 1);
+//        mReferenceImage.setImageBitmap(bitmap);
         
         // TODO: setting alarm
         // booting시 동작, intent받을 곳?
-        Intent intent = new Intent(this, com.garooyaproject.hismera.AlarmReceiver.class);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
-        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-        alarmManager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP
-        		, System.currentTimeMillis()
-        		, AlarmManager.INTERVAL_HALF_HOUR
-        		, pendingIntent);     
+//        Intent intent = new Intent(this, com.garooyaproject.hismera.AlarmReceiver.class);
+//        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+//        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+//        alarmManager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP
+//        		, System.currentTimeMillis()
+//        		, AlarmManager.INTERVAL_HALF_HOUR
+//        		, pendingIntent);     
+
+        
+    	Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+    	intent.setType("image/*");
+    	
+    	startActivityForResult(Intent.createChooser(intent, "Select Image"), 0);
         
     }
+
+    
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    	if(requestCode == 0) {
+    		if(resultCode == RESULT_OK) {
+    			Uri uri = data.getData();
+    			
+                String[] filePathColumn = {MediaStore.Images.Media.DATA};
+
+                Cursor cursor = getContentResolver().query(uri, filePathColumn, null, null, null);
+                cursor.moveToFirst();
+
+                int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
+                String filePath = cursor.getString(columnIndex);
+                cursor.close();
+
+                Bitmap bitmap = BitmapFactory.decodeFile(filePath);
+    			
+    			mReferenceImage.setImageBitmap(bitmap);
+    		} else {
+    			mReferenceImage.setImageBitmap(null);
+    		}
+    		
+    	}
+    }
+    
+    @Override
+    protected void onStart() {
+    	// TODO Auto-generated method stub
+    	super.onStart();
+    }
+    
+    @Override
+    protected void onStop() {
+    	// TODO Auto-generated method stub
+    	super.onStop();
+    }
+    
+    @Override
+    protected void onResume() {
+    	super.onResume();
+
+    	
+    }
+    
 
     @Override
     protected void onPause() {
     	super.onPause();
-    	releaseCamera();
+//    	releaseCamera();
     }
+    
+    
     
     @Override
     protected void onDestroy() {
     	super.onDestroy();
+    	releaseCamera();
     	mLocationManager.removeUpdates(this);
     }
 
@@ -176,56 +235,12 @@ public class MainActivity extends Activity implements OnClickListener
 		
 		@Override
 		public void onPictureTaken(byte[] data, Camera camera) {
-			File pictureFile = getOutputMediaFile();
 			
-			String path = pictureFile.getAbsolutePath();
-			
-			OutputStream os;
-			try {
-				os = new FileOutputStream(pictureFile);
-				os.write(data);
-				os.flush();
-				os.close();
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-//			writeEXIF(path, mLocation);
-
-			ExifInterface exif = null;
-			try {
-				exif = new ExifInterface(path);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-			String dateTime = exif.getAttribute(ExifInterface.TAG_DATETIME);
-			long time = 0;
-			try {
-				time = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.getDefault()).parse(dateTime).getTime();
-			} catch (ParseException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-			ContentValues values = new ContentValues(2);
-			values.put(MediaStore.Images.Media.DATA, path);
-			values.put(MediaStore.Images.Media.LATITUDE, mLocation.getLatitude());
-			values.put(MediaStore.Images.Media.LONGITUDE, mLocation.getLongitude());
-			values.put(MediaStore.Images.Media.DATE_TAKEN, time);
-		
-			getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+			Log.d("MainActivity", "onPictureTaken");
 			
 			mCamera.startPreview();
-			
-	        Bitmap bitmap = getImage(mLocation, 1);
-	        mReferenceImage.setImageBitmap(bitmap);
-			
+			SavePictureAsync save = new SavePictureAsync();
+			save.execute(data);
 			
 		}
 	};
@@ -258,6 +273,9 @@ public class MainActivity extends Activity implements OnClickListener
 	@Override
 	public void onClick(View v) {
 		if(R.id.button1 == v.getId()) {
+			
+			Log.d("MainActivity", "onClick - button");
+			
 			// config params
 	        Camera.Parameters cameraParams = mCamera.getParameters();
 	        cameraParams.setGpsAltitude(mLocation.getAltitude());
@@ -343,8 +361,78 @@ public class MainActivity extends Activity implements OnClickListener
 
 	@Override
 	public void onAutoFocus(boolean success, Camera camera) {
-		if(success) {
-			camera.takePicture(null, null, mPictureCallback);
+		
+		Log.d("MainActivity", "onAutoFocus - success : " + success);
+		camera.takePicture(null, null, mPictureCallback);
+//		if(success) {
+//			camera.takePicture(null, null, mPictureCallback);
+//		}
+		
+	}
+	
+	private class SavePictureAsync extends AsyncTask<byte[], Integer, Boolean> {
+
+		@Override
+		protected Boolean doInBackground(byte[]... params) {
+			
+			Log.d("MainActivity", "doInBackground");
+			
+			
+			File pictureFile = getOutputMediaFile();
+			
+			String path = pictureFile.getAbsolutePath();
+			
+			OutputStream os;
+			try {
+				os = new FileOutputStream(pictureFile);
+				os.write(params[0]);
+				os.flush();
+				os.close();
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+//			writeEXIF(path, mLocation);
+
+			ExifInterface exif = null;
+			try {
+				exif = new ExifInterface(path);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			String dateTime = exif.getAttribute(ExifInterface.TAG_DATETIME);
+			long time = 0;
+			try {
+				time = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.getDefault()).parse(dateTime).getTime();
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+			ContentValues values = new ContentValues(2);
+			values.put(MediaStore.Images.Media.DATA, path);
+			values.put(MediaStore.Images.Media.LATITUDE, mLocation.getLatitude());
+			values.put(MediaStore.Images.Media.LONGITUDE, mLocation.getLongitude());
+			values.put(MediaStore.Images.Media.DATE_TAKEN, time);
+		
+			getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+			
+			return true;
+		}
+		
+		@Override
+		protected void onPostExecute(Boolean result) {
+//			super.onPostExecute(result);
+			Log.d("MainActivity", "onPostExecute");
+	        Bitmap bitmap = getImage(mLocation, 1);
+	        mReferenceImage.setImageBitmap(bitmap);
+			
 		}
 		
 	}
