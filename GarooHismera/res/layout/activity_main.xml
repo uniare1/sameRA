@@ -6,12 +6,26 @@
 
     <FrameLayout
         android:id="@+id/camera_preview"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         >
     </FrameLayout>
 
+
+    
+    <ImageView 
+        android:id="@+id/imageView1" 
+        android:layout_width="150dp" 
+        android:layout_height="150dp" 
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginRight="10dp"
+        android:clickable="true"
+        android:scaleType="fitCenter"
+        android:contentDescription="@string/previous" />
+    
+    
     <Button
         android:id="@+id/button1"
         android:background="@drawable/shutter_button_selector"
@@ -21,16 +35,6 @@
         android:layout_alignParentTop="true"
         android:layout_marginRight="14dp"
         android:layout_marginTop="150dp"/>
-    
-    <ImageView 
-        android:id="@+id/imageView1" 
-        android:layout_width="150dp" 
-        android:layout_height="150dp" 
-        android:layout_alignParentRight="true"
-        android:layout_alignParentTop="true"
-        android:clickable="true"
-        android:contentDescription="@string/previous"
-        android:src="@drawable/ic_launcher" />
     
 <!--     
     <ImageView 

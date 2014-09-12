@@ -38,8 +38,11 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.View.OnLongClickListener;
+import android.view.View.OnTouchListener;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 import android.widget.FrameLayout;
@@ -48,9 +51,14 @@ import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 public class MainActivity extends Activity implements OnClickListener
+											, OnTouchListener
+											, OnLongClickListener
 											, LocationListener 
 											, AutoFocusCallback{
 
+	
+	private final static String TAG = "MainActivity";
+	
 	private Camera mCamera;
 	private CameraPreview mPreview;
 	private LocationManager mLocationManager;
@@ -91,33 +99,7 @@ public class MainActivity extends Activity implements OnClickListener
         	return;
         }
         
-        mCamera = Camera.open();
-        
-        // config params
-        Camera.Parameters cameraParams = mCamera.getParameters();
-        
-        // resolution
-        cameraParams.setJpegQuality(100);
-        List<Camera.Size> sizes = cameraParams.getSupportedPictureSizes();
-        Camera.Size size = sizes.get(0);
-        cameraParams.setPictureSize(size.width, size.height);
-        
-        Log.d("Supported Resolution", size.width + "x" + size.height);
-        
-        // focus
-        List<String> focusMode = cameraParams.getSupportedFocusModes();
-        if(focusMode.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
-        	cameraParams.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-        }
-        
-        
-        mCamera.setParameters(cameraParams);
-        
-        mPreview = new CameraPreview(this, mCamera);
-        mPreview.setFitsSystemWindows(true);
-        
-        FrameLayout fl = (FrameLayout) findViewById(R.id.camera_preview);
-        fl.addView(mPreview);
+//        initCamera();
         
         Button button = (Button) findViewById(R.id.button1);
         button.setOnClickListener(this);
@@ -128,7 +110,9 @@ public class MainActivity extends Activity implements OnClickListener
         ImageView imageView = (ImageView) findViewById(R.id.imageView1);
 
         mReferenceImage = new ReferenceImage(imageView, screenSize);        
-        mReferenceImage.setOnClickListener(this);
+        mReferenceImage.setOnClickListener(this);        
+        mReferenceImage.setOnLongClickListener(this);
+        
         
         // TODO: has to change
         // 해당 위치에 있는 기존의 사진
@@ -146,17 +130,18 @@ public class MainActivity extends Activity implements OnClickListener
 //        		, pendingIntent);     
 
         
-    	Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-    	intent.setType("image/*");
-    	
-    	startActivityForResult(Intent.createChooser(intent, "Select Image"), 0);
+    	selectImage();
         
     }
-
+    
     
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    	
     	if(requestCode == 0) {
+    		int width = LayoutParams.MATCH_PARENT, height = LayoutParams.MATCH_PARENT;
+    		ImageView imageView = (ImageView) findViewById(R.id.imageView1);
+    		
     		if(resultCode == RESULT_OK) {
     			Uri uri = data.getData();
     			
@@ -170,39 +155,48 @@ public class MainActivity extends Activity implements OnClickListener
                 cursor.close();
 
                 Bitmap bitmap = BitmapFactory.decodeFile(filePath);
-    			
     			mReferenceImage.setImageBitmap(bitmap);
+        		height = imageView.getDrawable().getIntrinsicHeight();
+        		width = imageView.getDrawable().getIntrinsicWidth();
     		} else {
     			mReferenceImage.setImageBitmap(null);
-    		}
-    		
+    		}   		
+
+    		FrameLayout frameLayout = (FrameLayout) findViewById(R.id.camera_preview);
+    		LayoutParams params = frameLayout.getLayoutParams();
+    		params.height = height;
+    		params.width = width;
+    		frameLayout.setLayoutParams(params);
     	}
+    	
+//    	initCamera();
     }
     
     @Override
     protected void onStart() {
-    	// TODO Auto-generated method stub
     	super.onStart();
+    	Log.d(TAG, "onStart");
     }
     
     @Override
     protected void onStop() {
-    	// TODO Auto-generated method stub
     	super.onStop();
+    	Log.d(TAG, "onStop");
     }
     
     @Override
     protected void onResume() {
     	super.onResume();
-
-    	
+    	Log.d(TAG, "onResume");
+    	initCamera();
     }
     
 
     @Override
     protected void onPause() {
     	super.onPause();
-//    	releaseCamera();
+    	Log.d(TAG, "onPause");
+    	releaseCamera();
     }
     
     
@@ -221,6 +215,43 @@ public class MainActivity extends Activity implements OnClickListener
         return true;
     }
     
+    
+    private void initCamera() {
+    	
+   		mCamera = Camera.open();
+
+        // config params
+        Camera.Parameters cameraParams = mCamera.getParameters();
+        
+        // resolution
+        cameraParams.setJpegQuality(100);
+        List<Camera.Size> sizes = cameraParams.getSupportedPictureSizes();
+        Camera.Size size = sizes.get(0);
+        cameraParams.setPictureSize(size.width, size.height);
+        
+        Log.d("Supported Resolution", size.width + "x" + size.height);
+        
+        // focus
+        List<String> focusMode = cameraParams.getSupportedFocusModes();
+        if(focusMode.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
+        	cameraParams.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+        }       
+        
+        mCamera.setParameters(cameraParams);
+        
+        mPreview = new CameraPreview(this, mCamera);
+        mPreview.setFitsSystemWindows(false);
+        
+        FrameLayout fl = (FrameLayout) findViewById(R.id.camera_preview);
+        fl.addView(mPreview);
+    }
+    
+    private void selectImage () {
+    	Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+    	intent.setType("image/*");
+    	
+    	startActivityForResult(Intent.createChooser(intent, "Select Image"), 0);
+    }
     
     private boolean checkCameraHardware(Context context) {    	
     	if(context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
@@ -268,7 +299,11 @@ public class MainActivity extends Activity implements OnClickListener
 		return mediaFile;
 	}
 
-
+	@Override
+	public boolean onTouch(View v, MotionEvent event) {
+		// TODO Auto-generated method stub
+		return false;
+	}
 
 	@Override
 	public void onClick(View v) {
@@ -290,18 +325,29 @@ public class MainActivity extends Activity implements OnClickListener
 	        mCamera.autoFocus(this);
 	        
 			
-		} else if(R.id.imageView1 == v.getId()) {
-			
-			mReferenceImage.update();
-			
-		}
-		
+		} else if(R.id.imageView1 == v.getId()) {			
+			mReferenceImage.update();			
+		}		
 	}
+	
+	@Override
+	public boolean onLongClick(View v) {
+		if(R.id.imageView1 == v.getId()) {			
+			selectImage();			
+			return true;
+		}
+		return false;
+	}
+	
 	
 	private void releaseCamera() {
 		if(null != mCamera) {
 			mCamera.release();
 			mCamera = null;
+		}
+		
+		if(mPreview != null) {
+			mPreview.getHolder().removeCallback(mPreview);
 		}
 	}
 
@@ -313,19 +359,16 @@ public class MainActivity extends Activity implements OnClickListener
 
 	@Override
 	public void onProviderDisabled(String provider) {
-		// TODO Auto-generated method stub
 		Log.d("onProviderDisabled", provider);
 	}
 
 	@Override
 	public void onProviderEnabled(String provider) {
-		// TODO Auto-generated method stub
 		Log.d("onProviderEnabled", provider);
 	}
 
 	@Override
 	public void onStatusChanged(String provider, int status, Bundle extras) {
-		// TODO Auto-generated method stub
 		Log.d("onStatusChanged", provider);
 	}
 	
@@ -389,10 +432,8 @@ public class MainActivity extends Activity implements OnClickListener
 				os.flush();
 				os.close();
 			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			
@@ -402,7 +443,6 @@ public class MainActivity extends Activity implements OnClickListener
 			try {
 				exif = new ExifInterface(path);
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			
@@ -411,7 +451,6 @@ public class MainActivity extends Activity implements OnClickListener
 			try {
 				time = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.getDefault()).parse(dateTime).getTime();
 			} catch (ParseException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 
@@ -436,6 +475,7 @@ public class MainActivity extends Activity implements OnClickListener
 		}
 		
 	}
+
 	
 
 //	private void writeEXIF(String path, Location location) {

@@ -5,6 +5,7 @@ import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.util.Log;
 import android.view.View.OnClickListener;
+import android.view.View.OnLongClickListener;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
@@ -23,17 +24,14 @@ public class ReferenceImage {
 		mScreenSize = size;
 		
         LayoutParams lp = (LayoutParams) mImageView.getLayoutParams();
-        mLayoutParams = new LayoutParams((ViewGroup.LayoutParams)lp);
-        int [] rules = lp.getRules();
-        int length = rules.length;
-        for(int index = 0; index < length; index++) {
-        	mLayoutParams.addRule(index, rules[index]);
-        }
+        mLayoutParams = copyLayoutParams(lp);
 	}
 	
 	
 	public void update() {
-		LayoutParams lp = (LayoutParams) mImageView.getLayoutParams();
+	
+		LayoutParams lp = copyLayoutParams(mLayoutParams);
+		
         Drawable drawable = mImageView.getDrawable();
         
 		if(mIsSmallView == true) {
@@ -41,36 +39,45 @@ public class ReferenceImage {
 
 	        drawable.setAlpha(120);			
 			
-			int rules[] = lp.getRules();
-			int length = rules.length;
-			for(int index = 0; index < length; index++) {
-				lp.addRule(index, 0);
-			}			
-			
-//			lp.addRule(RelativeLayout.CENTER_IN_PARENT);
-			lp.width = LayoutParams.WRAP_CONTENT;
-			lp.height = LayoutParams.WRAP_CONTENT;
-			lp.rightMargin = 0;
+			lp.addRule(RelativeLayout.CENTER_IN_PARENT);
+			lp.width = mScreenSize.x;
+			lp.height = mScreenSize.y;
 			lp.topMargin = 0;
+			lp.bottomMargin = 0;
+			lp.rightMargin = 0;
+			lp.leftMargin = 0;
 
 		} else {
 			mIsSmallView = true;
-			drawable.setAlpha(255);		
-			lp = new LayoutParams((ViewGroup.LayoutParams)mLayoutParams);
-			
-			int rules[] = mLayoutParams.getRules();
-			int length = rules.length;
-			for(int index = 0; index < length; index++) {
-				lp.addRule(index, rules[index]);
-			}	
+			drawable.setAlpha(255);
 		}
 		mImageView.setLayoutParams(lp);
 		mImageView.setAdjustViewBounds(true);
 		mImageView.setScaleType(ScaleType.CENTER_INSIDE);
 	}
 	
+	private LayoutParams copyLayoutParams(LayoutParams params) {
+        LayoutParams lp = new LayoutParams((ViewGroup.LayoutParams)params);
+        int [] rules = params.getRules();
+        int length = rules.length;
+        for(int index = 0; index < length; index++) {
+        	lp.addRule(index, rules[index]);
+        }
+        
+		lp.topMargin = params.topMargin;
+		lp.bottomMargin = params.bottomMargin;
+		lp.leftMargin = params.leftMargin;
+		lp.rightMargin = params.rightMargin;        
+        
+        return lp;
+	}
+	
 	public void setOnClickListener(OnClickListener listener) {
 		mImageView.setOnClickListener(listener);
+	}
+	
+	public void setOnLongClickListener(OnLongClickListener listener) {
+		mImageView.setOnLongClickListener(listener);
 	}
 	
 	public void setImageBitmap(Bitmap bitmap) {
@@ -86,8 +93,6 @@ public class ReferenceImage {
         Log.d("ScreenSize", "x=" + mScreenSize.x + ", y=" + mScreenSize.y);
         Log.d("BitmapSize", "x=" + bitmap.getWidth() + ", y=" + bitmap.getHeight());
         Log.d("Radio", "xr = " + x + ", yr = " + y );
-        
-        
         
         int scaleX;
         int scaleY;
@@ -105,5 +110,6 @@ public class ReferenceImage {
         Bitmap image = Bitmap.createScaledBitmap(bitmap, scaleX, scaleY, false);
 		
 		mImageView.setImageBitmap(image);
+		mImageView.invalidate();
 	}
 }

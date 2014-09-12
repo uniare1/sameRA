@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import android.content.Context;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.Camera;
 import android.hardware.Camera.Size;
@@ -53,9 +54,19 @@ public class CameraPreview extends SurfaceView implements Callback {
 		try {
 			Camera.Parameters params = mCamera.getParameters();
 			
+			float imgRatio = (float) width/ (float)height;			
+			Rect previewSize = new Rect(0, 0, 0, 1);
 			List<Size> sizes =params.getSupportedPreviewSizes();
+			int index = 0;
+			for(Size size : sizes) {
+				if(Math.abs(imgRatio - ((float)size.width / (float)size.height)) < Math.abs(imgRatio - ((float)previewSize.width() / (float)previewSize.height()))) {
+					previewSize.right = size.width;
+					previewSize.bottom = size.height;
+				}
+				index++;
+			}
 			
-			params.setPreviewSize(sizes.get(0).width, sizes.get(0).height);
+			params.setPreviewSize(previewSize.width() , previewSize.height());
 			mCamera.setParameters(params);
 		
 			mCamera.setPreviewDisplay(mSurfaceHolder);
