@@ -247,10 +247,13 @@ public class MainActivity extends Activity implements OnClickListener
     }
     
     private void selectImage () {
-    	Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-    	intent.setType("image/*");
+//    	Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+    	Intent intent = new Intent(Intent.ACTION_PICK);
     	
-    	startActivityForResult(Intent.createChooser(intent, "Select Image"), 0);
+    	intent.setType("image/*");
+//    	
+    	startActivityForResult(intent, 0);
+//    	startActivityForResult(Intent.createChooser(intent, "Select Image"), 0);
     }
     
     private boolean checkCameraHardware(Context context) {    	

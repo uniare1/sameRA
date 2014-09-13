@@ -1,6 +1,7 @@
 package com.garooyaproject.hismera;
 
 import android.graphics.Bitmap;
+import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.util.Log;
@@ -90,24 +91,29 @@ public class ReferenceImage {
         float y = (float) mScreenSize.y / (float) bitmap.getHeight();
         float x = (float) mScreenSize.x / (float) bitmap.getWidth();
         
-        Log.d("ScreenSize", "x=" + mScreenSize.x + ", y=" + mScreenSize.y);
-        Log.d("BitmapSize", "x=" + bitmap.getWidth() + ", y=" + bitmap.getHeight());
-        Log.d("Radio", "xr = " + x + ", yr = " + y );
+//        Log.d("ScreenSize", "x=" + mScreenSize.x + ", y=" + mScreenSize.y);
+//        Log.d("BitmapSize", "x=" + bitmap.getWidth() + ", y=" + bitmap.getHeight());
+//        Log.d("Radio", "xr = " + x + ", yr = " + y );
+//        
+//        int scaleX;
+//        int scaleY;
+//        
+//        if( y < x) {
+//        	scaleX = (bitmap.getWidth() * mScreenSize.y) / bitmap.getHeight();
+//        	scaleY = mScreenSize.y;
+//        } else {
+//        	scaleX = mScreenSize.x;
+//        	scaleY = (bitmap.getHeight() * mScreenSize.x) / bitmap.getWidth();
+//        }
+//        
+//        Log.d("Scale", "scaleX = " + scaleX + ", scaleY = " + scaleY );
         
-        int scaleX;
-        int scaleY;
-        
-        if( y < x) {
-        	scaleX = (bitmap.getWidth() * mScreenSize.y) / bitmap.getHeight();
-        	scaleY = mScreenSize.y;
-        } else {
-        	scaleX = mScreenSize.x;
-        	scaleY = (bitmap.getHeight() * mScreenSize.x) / bitmap.getWidth();
+        Matrix matrix = new Matrix();
+        matrix.setScale(x, y);
+        if(bitmap.getHeight() > bitmap.getWidth()) {
+        	matrix.setRotate(-90);
         }
-        
-        Log.d("Scale", "scaleX = " + scaleX + ", scaleY = " + scaleY );
-        
-        Bitmap image = Bitmap.createScaledBitmap(bitmap, scaleX, scaleY, false);
+        Bitmap image = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, false);
 		
 		mImageView.setImageBitmap(image);
 		mImageView.invalidate();
