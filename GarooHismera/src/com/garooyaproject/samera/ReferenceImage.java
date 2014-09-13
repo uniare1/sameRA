@@ -1,4 +1,4 @@
-package com.garooyaproject.hismera;
+package com.garooyaproject.samera;
 
 import android.graphics.Bitmap;
 import android.graphics.Matrix;

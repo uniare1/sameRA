@@ -1,4 +1,4 @@
-package com.garooyaproject.hismera;
+package com.garooyaproject.samera;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -121,7 +121,7 @@ public class MainActivity extends Activity implements OnClickListener
         
         // TODO: setting alarm
         // booting시 동작, intent받을 곳?
-//        Intent intent = new Intent(this, com.garooyaproject.hismera.AlarmReceiver.class);
+//        Intent intent = new Intent(this, com.garooyaproject.samera.AlarmReceiver.class);
 //        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
 //        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 //        alarmManager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP
