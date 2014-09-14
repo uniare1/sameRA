@@ -90,26 +90,10 @@ public class ReferenceImage {
 		
         float y = (float) mScreenSize.y / (float) bitmap.getHeight();
         float x = (float) mScreenSize.x / (float) bitmap.getWidth();
-        
-//        Log.d("ScreenSize", "x=" + mScreenSize.x + ", y=" + mScreenSize.y);
-//        Log.d("BitmapSize", "x=" + bitmap.getWidth() + ", y=" + bitmap.getHeight());
-//        Log.d("Radio", "xr = " + x + ", yr = " + y );
-//        
-//        int scaleX;
-//        int scaleY;
-//        
-//        if( y < x) {
-//        	scaleX = (bitmap.getWidth() * mScreenSize.y) / bitmap.getHeight();
-//        	scaleY = mScreenSize.y;
-//        } else {
-//        	scaleX = mScreenSize.x;
-//        	scaleY = (bitmap.getHeight() * mScreenSize.x) / bitmap.getWidth();
-//        }
-//        
-//        Log.d("Scale", "scaleX = " + scaleX + ", scaleY = " + scaleY );
+        float scale = Math.max(y, x);
         
         Matrix matrix = new Matrix();
-        matrix.setScale(x, y);
+        matrix.setScale(scale, scale);
         if(bitmap.getHeight() > bitmap.getWidth()) {
         	matrix.setRotate(-90);
         }

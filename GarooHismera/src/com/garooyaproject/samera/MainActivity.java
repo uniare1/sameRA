@@ -23,9 +23,11 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
 import android.hardware.Camera.PictureCallback;
+import android.hardware.Camera.Size;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -68,7 +70,7 @@ public class MainActivity extends Activity implements OnClickListener
 //	private boolean mIsSmallImageView = true;
 	
 	private ReferenceImage mReferenceImage;
-	
+	private List<Size> mPreviewSizes;
 	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -158,18 +160,34 @@ public class MainActivity extends Activity implements OnClickListener
     			mReferenceImage.setImageBitmap(bitmap);
         		height = imageView.getDrawable().getIntrinsicHeight();
         		width = imageView.getDrawable().getIntrinsicWidth();
+        		
+        		// camera preview size ∞·¡§
+    			float imgRatio = (float) width/ (float)height;			
+    			Rect previewSize = new Rect(0, 0, 0, 1);
+    			for(Size size : mPreviewSizes) {
+    				if(Math.abs(imgRatio - ((float)size.width / (float)size.height)) < Math.abs(imgRatio - ((float)previewSize.width() / (float)previewSize.height()))) {
+    					previewSize.right = size.width;
+    					previewSize.bottom = size.height;
+    				}
+    			}
+    			
+    			Point screenSize = new Point(0, 0);
+    	        getWindowManager().getDefaultDisplay().getSize(screenSize);
+    			
+    			width = (int) (screenSize.y * ((float) previewSize.right / (float) previewSize.bottom));
+    			height = screenSize.y;
+        		
     		} else {
     			mReferenceImage.setImageBitmap(null);
-    		}   		
+    		}
 
     		FrameLayout frameLayout = (FrameLayout) findViewById(R.id.camera_preview);
-    		LayoutParams params = frameLayout.getLayoutParams();
-    		params.height = height;
-    		params.width = width;
-    		frameLayout.setLayoutParams(params);
+    		LayoutParams lp = frameLayout.getLayoutParams();
+    		lp.height = height;
+    		lp.width = width;
+    		frameLayout.setLayoutParams(lp);
     	}
-    	
-//    	initCamera();
+
     }
     
     @Override
@@ -196,6 +214,7 @@ public class MainActivity extends Activity implements OnClickListener
     protected void onPause() {
     	super.onPause();
     	Log.d(TAG, "onPause");
+    	
     	releaseCamera();
     }
     
@@ -217,11 +236,23 @@ public class MainActivity extends Activity implements OnClickListener
     
     
     private void initCamera() {
-    	
-   		mCamera = Camera.open();
+    	if(mCamera != null) {
+    		try {
+				mCamera.reconnect();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	} else {
+    		mCamera = Camera.open();
+    	}
 
         // config params
         Camera.Parameters cameraParams = mCamera.getParameters();
+        
+        // preview
+        mPreviewSizes =cameraParams.getSupportedPreviewSizes();
+        
         
         // resolution
         cameraParams.setJpegQuality(100);
@@ -247,13 +278,9 @@ public class MainActivity extends Activity implements OnClickListener
     }
     
     private void selectImage () {
-//    	Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
     	Intent intent = new Intent(Intent.ACTION_PICK);
-    	
     	intent.setType("image/*");
-//    	
     	startActivityForResult(intent, 0);
-//    	startActivityForResult(Intent.createChooser(intent, "Select Image"), 0);
     }
     
     private boolean checkCameraHardware(Context context) {    	
@@ -473,10 +500,8 @@ public class MainActivity extends Activity implements OnClickListener
 //			super.onPostExecute(result);
 			Log.d("MainActivity", "onPostExecute");
 	        Bitmap bitmap = getImage(mLocation, 1);
-	        mReferenceImage.setImageBitmap(bitmap);
-			
-		}
-		
+	        mReferenceImage.setImageBitmap(bitmap);			
+		}		
 	}
 
 	
