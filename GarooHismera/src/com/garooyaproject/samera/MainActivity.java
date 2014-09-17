@@ -163,18 +163,28 @@ public class MainActivity extends Activity implements OnClickListener
         		
         		// camera preview size ∞·¡§
     			float imgRatio = (float) width/ (float)height;			
-    			Rect previewSize = new Rect(0, 0, 0, 1);
+    			Rect previewRect = new Rect(0, 0, 0, 1);
+    			
+    			while(mPreviewSizes == null) {
+    				try {
+						Thread.sleep(100);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+    			}
+    			
     			for(Size size : mPreviewSizes) {
-    				if(Math.abs(imgRatio - ((float)size.width / (float)size.height)) < Math.abs(imgRatio - ((float)previewSize.width() / (float)previewSize.height()))) {
-    					previewSize.right = size.width;
-    					previewSize.bottom = size.height;
+    				if(Math.abs(imgRatio - ((float)size.width / (float)size.height)) < Math.abs(imgRatio - ((float)previewRect.width() / (float)previewRect.height()))) {
+    					previewRect.right = size.width;
+    					previewRect.bottom = size.height;
     				}
     			}
     			
     			Point screenSize = new Point(0, 0);
     	        getWindowManager().getDefaultDisplay().getSize(screenSize);
     			
-    			width = (int) (screenSize.y * ((float) previewSize.right / (float) previewSize.bottom));
+    			width = (int) (screenSize.y * ((float) previewRect.right / (float) previewRect.bottom));
     			height = screenSize.y;
         		
     		} else {
@@ -274,6 +284,7 @@ public class MainActivity extends Activity implements OnClickListener
         mPreview.setFitsSystemWindows(false);
         
         FrameLayout fl = (FrameLayout) findViewById(R.id.camera_preview);
+        fl.removeAllViews();
         fl.addView(mPreview);
     }
     
