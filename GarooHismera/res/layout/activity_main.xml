@@ -26,17 +26,6 @@
         android:scaleType="fitCenter"
         android:contentDescription="@string/previous" />
     
-    
-    <Button
-        android:id="@+id/button1"
-        android:background="@drawable/shutter_button_selector"
-        android:layout_width="70dp"
-        android:layout_height="70dp"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentTop="true"
-        android:layout_marginRight="14dp"
-        android:layout_marginTop="150dp"/>
-    
 <!--     
     <ImageView 
         android:id="@+id/imageView1" 
@@ -52,4 +41,23 @@
         android:contentDescription="@string/previous"
         android:src="@drawable/ic_launcher" />
      -->
+
+    <Button
+        android:id="@+id/button1"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:layout_alignRight="@+id/imageView1"
+        android:layout_centerVertical="true"
+        android:background="@drawable/shutter_button_selector" />
+
+    <ToggleButton
+        android:id="@+id/toggleButton1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignRight="@+id/button1"
+        android:checked="true"
+        android:textOn="@string/back"
+        android:textOff="@string/front"/>
+
 </RelativeLayout>

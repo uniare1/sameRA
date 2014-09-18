@@ -6,5 +6,7 @@
     <string name="hello_world">Hello world!</string>
     <string name="shot">Shot</string>
     <string name="previous">Previous</string>
+    <string name="back">Back</string>
+    <string name="front">Front</string>
 
 </resources>

@@ -26,6 +26,7 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
+import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.Size;
 import android.location.Criteria;
@@ -51,6 +52,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 public class MainActivity extends Activity implements OnClickListener
 											, OnTouchListener
@@ -105,6 +107,9 @@ public class MainActivity extends Activity implements OnClickListener
         
         Button button = (Button) findViewById(R.id.button1);
         button.setOnClickListener(this);
+        
+        ToggleButton toggleButton = (ToggleButton) findViewById(R.id.toggleButton1);
+        toggleButton.setOnClickListener(this);
         
         Point screenSize = new Point(0, 0);
         getWindowManager().getDefaultDisplay().getSize(screenSize);
@@ -216,7 +221,7 @@ public class MainActivity extends Activity implements OnClickListener
     protected void onResume() {
     	super.onResume();
     	Log.d(TAG, "onResume");
-    	initCamera();
+    	initCamera(CameraInfo.CAMERA_FACING_BACK);
     }
     
 
@@ -245,17 +250,28 @@ public class MainActivity extends Activity implements OnClickListener
     }
     
     
-    private void initCamera() {
-    	if(mCamera != null) {
-    		try {
-				mCamera.reconnect();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-    	} else {
-    		mCamera = Camera.open();
-    	}
+    private void initCamera(int facing) {
+    	
+//    	if(mCamera != null) {
+//    		try {
+//				mCamera.reconnect();
+//			} catch (IOException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+//    	} else {
+    		
+        	int numOfCameras = Camera.getNumberOfCameras();
+        	
+        	for(int index = 0; index < numOfCameras; index++) {
+        		CameraInfo cameraInfo = new CameraInfo();
+        		Camera.getCameraInfo(index, cameraInfo);
+        		if(cameraInfo.facing == facing) {
+        			mCamera = Camera.open(index);
+        			break;
+        		} 
+        	}
+//    	}
 
         // config params
         Camera.Parameters cameraParams = mCamera.getParameters();
@@ -368,7 +384,21 @@ public class MainActivity extends Activity implements OnClickListener
 			
 		} else if(R.id.imageView1 == v.getId()) {			
 			mReferenceImage.update();			
-		}		
+		} else if(R.id.toggleButton1 == v.getId()) {
+			
+			mCamera.release();
+			
+			ToggleButton toggleButton = (ToggleButton) findViewById(R.id.toggleButton1);
+			if(toggleButton.isChecked()) {
+				//current : front facing camera to back facing camera
+				toggleButton.setChecked(true);
+				initCamera(CameraInfo.CAMERA_FACING_BACK);
+			} else {
+				//current : back facing camera to front facing camera
+				toggleButton.setChecked(false);
+				initCamera(CameraInfo.CAMERA_FACING_FRONT);
+			}
+		}
 	}
 	
 	@Override

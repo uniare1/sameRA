@@ -93,7 +93,7 @@ public class CameraPreview extends SurfaceView implements Callback {
 
 	@Override
 	public void surfaceDestroyed(SurfaceHolder holder) {
-		mCamera.stopPreview();
+//		mCamera.stopPreview();
 		mCamera.release();
 		mCamera = null;
 	}
