@@ -65,10 +65,8 @@ public class CameraPreview extends SurfaceView implements Callback {
 			}
 			
 			params.setPreviewSize(previewSize.width() , previewSize.height());
-			mCamera.setParameters(params);
-		
-			mCamera.setPreviewDisplay(mSurfaceHolder);
-						
+			mCamera.setParameters(params);			
+			mCamera.setPreviewDisplay(mSurfaceHolder);						
 			mCamera.startPreview();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

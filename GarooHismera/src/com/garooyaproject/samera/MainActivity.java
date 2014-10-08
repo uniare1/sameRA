@@ -10,11 +10,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.ExecutionException;
 
 import android.app.Activity;
-import android.app.AlarmManager;
-import android.app.PendingIntent;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -39,9 +36,11 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MotionEvent;
+import android.view.OrientationEventListener;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnLongClickListener;
@@ -50,7 +49,6 @@ import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
@@ -63,6 +61,8 @@ public class MainActivity extends Activity implements OnClickListener
 	
 	private final static String TAG = "MainActivity";
 	
+	private final static String ROOT_DIR = "sameRA";
+	
 	private Camera mCamera;
 	private CameraPreview mPreview;
 	private LocationManager mLocationManager;
@@ -74,17 +74,47 @@ public class MainActivity extends Activity implements OnClickListener
 	private ReferenceImage mReferenceImage;
 	private List<Size> mPreviewSizes;
 	
+	private OrientationEventListener mOrientationEventListener;
+	private int mOrientation;
+	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        
+        // Orientation
+        
+        mOrientationEventListener = new OrientationEventListener(this) {
+			
+			@Override
+			public void onOrientationChanged(int orientation) {
+				Log.d(TAG, "Orentation : " + orientation);
+				
+				if(orientation >= 315 || orientation < 45) {
+//					mOrientation = ExifInterface.ORIENTATION_NORMAL;
+					mOrientation = 90; // landscape
+				} else if(orientation >=45 && orientation < 135) {
+//					mOrientation = ExifInterface.ORIENTATION_ROTATE_90;
+					mOrientation = 180;//landscape
+				} else if(orientation >= 135 && orientation < 225) {
+//					mOrientation = ExifInterface.ORIENTATION_ROTATE_180;
+					mOrientation = 270;//landscape
+				} else if(orientation >= 225 && orientation < 316) {
+//					mOrientation = ExifInterface.ORIENTATION_ROTATE_270;
+					mOrientation = 0; //landscape
+				}
+				
+				
+			}
+		};
+        
         
         // GPS
         mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
         criteria.setAccuracy(Criteria.ACCURACY_FINE);
         String locationProvider = mLocationManager.getBestProvider(criteria, true);
-        Log.d("Provider", locationProvider);
+        Log.d(TAG, locationProvider);
         
         mLocation = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
         if(mLocation == null) {
@@ -221,6 +251,9 @@ public class MainActivity extends Activity implements OnClickListener
     protected void onResume() {
     	super.onResume();
     	Log.d(TAG, "onResume");
+    	if(mOrientationEventListener != null) {
+    		mOrientationEventListener.enable();
+    	}
     	initCamera(CameraInfo.CAMERA_FACING_BACK);
     }
     
@@ -229,7 +262,9 @@ public class MainActivity extends Activity implements OnClickListener
     protected void onPause() {
     	super.onPause();
     	Log.d(TAG, "onPause");
-    	
+    	if(mOrientationEventListener != null) {
+    		mOrientationEventListener.disable();
+    	}
     	releaseCamera();
     }
     
@@ -252,27 +287,21 @@ public class MainActivity extends Activity implements OnClickListener
     
     private void initCamera(int facing) {
     	
-//    	if(mCamera != null) {
-//    		try {
-//				mCamera.reconnect();
-//			} catch (IOException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
-//    	} else {
-    		
-        	int numOfCameras = Camera.getNumberOfCameras();
-        	
-        	for(int index = 0; index < numOfCameras; index++) {
-        		CameraInfo cameraInfo = new CameraInfo();
-        		Camera.getCameraInfo(index, cameraInfo);
-        		if(cameraInfo.facing == facing) {
-        			mCamera = Camera.open(index);
-        			break;
-        		} 
-        	}
-//    	}
 
+    	int numOfCameras = Camera.getNumberOfCameras();
+    	
+    	for(int index = 0; index < numOfCameras; index++) {
+    		CameraInfo cameraInfo = new CameraInfo();
+    		Camera.getCameraInfo(index, cameraInfo);
+    		if(cameraInfo.facing == facing) {
+    			mCamera = Camera.open(index);
+    			break;
+    		} 
+    	}  	
+
+        // Orientation
+//        mOrientationEventListener = new CameraOrientationEventListener(this, mCamera); 
+        
         // config params
         Camera.Parameters cameraParams = mCamera.getParameters();
         
@@ -326,7 +355,7 @@ public class MainActivity extends Activity implements OnClickListener
 			
 			Log.d("MainActivity", "onPictureTaken");
 			
-			mCamera.startPreview();
+			camera.startPreview();
 			SavePictureAsync save = new SavePictureAsync();
 			save.execute(data);
 			
@@ -336,7 +365,7 @@ public class MainActivity extends Activity implements OnClickListener
 	private static File getOutputMediaFile() {
 		File mediaStorageDir =  new File(
 				Environment.getExternalStoragePublicDirectory(
-						Environment.DIRECTORY_PICTURES), "GarooHismera");
+						Environment.DIRECTORY_PICTURES), ROOT_DIR);
 		if(!mediaStorageDir.exists()) {
 			if(!mediaStorageDir.mkdirs()) {
 				return null;
@@ -470,6 +499,19 @@ public class MainActivity extends Activity implements OnClickListener
 		String path = cursor.getString(1);		
 		cursor.close();
 		
+		// TODO: exif 바탕으로 rotation
+		ExifInterface exif = null;
+		try {
+			exif = new ExifInterface(path);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		int exifOrientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, 0);
+		int degree = ExifToOrientation(exifOrientation);
+		
+
+		
 		return BitmapFactory.decodeFile(path);
 	}
 
@@ -495,7 +537,7 @@ public class MainActivity extends Activity implements OnClickListener
 			File pictureFile = getOutputMediaFile();
 			
 			String path = pictureFile.getAbsolutePath();
-			
+
 			OutputStream os;
 			try {
 				os = new FileOutputStream(pictureFile);
@@ -508,15 +550,8 @@ public class MainActivity extends Activity implements OnClickListener
 				e.printStackTrace();
 			}
 			
-//			writeEXIF(path, mLocation);
+			ExifInterface exif = writeEXIF(path, mLocation);
 
-			ExifInterface exif = null;
-			try {
-				exif = new ExifInterface(path);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			
 			String dateTime = exif.getAttribute(ExifInterface.TAG_DATETIME);
 			long time = 0;
 			try {
@@ -524,13 +559,15 @@ public class MainActivity extends Activity implements OnClickListener
 			} catch (ParseException e) {
 				e.printStackTrace();
 			}
-
+			
+			// Orientation
 			ContentValues values = new ContentValues(2);
 			values.put(MediaStore.Images.Media.DATA, path);
 			values.put(MediaStore.Images.Media.LATITUDE, mLocation.getLatitude());
 			values.put(MediaStore.Images.Media.LONGITUDE, mLocation.getLongitude());
 			values.put(MediaStore.Images.Media.DATE_TAKEN, time);
-		
+			values.put(MediaStore.Images.Media.ORIENTATION, ExifToOrientation(Integer.decode(exif.getAttribute(ExifInterface.TAG_ORIENTATION))));
+			
 			getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
 			
 			return true;
@@ -545,55 +582,125 @@ public class MainActivity extends Activity implements OnClickListener
 		}		
 	}
 
+
 	
 
-//	private void writeEXIF(String path, Location location) {
-//		ExifInterface exif = null;
-//		try {
-//			exif = new ExifInterface(path);
-//		} catch (IOException e1) {
-//			// TODO Auto-generated catch block
-//			e1.printStackTrace();
-//		}
-//		
-//		// when the photo is taken
-//		exif.setAttribute(ExifInterface.TAG_DATETIME, 
-//				DateFormat.format("yyyy:MM:dd HH:mm:ss", System.currentTimeMillis()).toString());
-//		
-//		// where the photo is taken
-//		double latitude = location.getLatitude();
-//		double longitude = location.getLongitude();
-//		
-//		int num1Lat = (int)Math.floor(latitude);
-//		int num2Lat = (int)Math.floor((latitude - num1Lat) * 60);
-//		double num3Lat = (latitude - ((double)num1Lat+((double)num2Lat/60))) * 3600000;
-//		
-//		int num1Lon = (int)Math.floor(longitude);
-//		int num2Lon = (int)Math.floor((longitude - num1Lon) * 60);
-//		double num3Lon = (longitude - ((double)num1Lon+((double)num2Lon/60))) * 3600000;
-//		
-//		exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, num1Lat+"/1,"+num2Lat+"/1,"+num3Lat+"/1000");
-//		exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, num1Lon+"/1,"+num2Lon+"/1,"+num3Lon+"/1000");
-//		
-//		if (latitude > 0) {
-//		    exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, "N"); 
-//		} else {
-//		    exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, "S");
-//		}
-//		
-//		if (longitude > 0) {
-//		    exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, "E");    
-//		} else {
-//		exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, "W");
-//		}
-//		
-//		
-//		try {
-//			exif.saveAttributes();
-//		} catch (IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//		
-//	}
+	private ExifInterface writeEXIF(String path, Location location) {
+		ExifInterface exif = null;
+		try {
+			exif = new ExifInterface(path);
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
+		// when the photo is taken
+		exif.setAttribute(ExifInterface.TAG_DATETIME, 
+				DateFormat.format("yyyy:MM:dd HH:mm:ss", System.currentTimeMillis()).toString());
+		
+		// where the photo is taken
+		double latitude = location.getLatitude();
+		double longitude = location.getLongitude();
+		
+		int num1Lat = (int)Math.floor(latitude);
+		int num2Lat = (int)Math.floor((latitude - num1Lat) * 60);
+		double num3Lat = (latitude - ((double)num1Lat+((double)num2Lat/60))) * 3600000;
+		
+		int num1Lon = (int)Math.floor(longitude);
+		int num2Lon = (int)Math.floor((longitude - num1Lon) * 60);
+		double num3Lon = (longitude - ((double)num1Lon+((double)num2Lon/60))) * 3600000;
+		
+		exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, num1Lat+"/1,"+num2Lat+"/1,"+num3Lat+"/1000");
+		exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, num1Lon+"/1,"+num2Lon+"/1,"+num3Lon+"/1000");
+		
+		if (latitude > 0) {
+		    exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, "N"); 
+		} else {
+		    exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, "S");
+		}
+		
+		if (longitude > 0) {
+		    exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, "E");    
+		} else {
+		exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, "W");
+		}
+		
+		
+		// TODO: 멤버 변수 사용하지 말자.
+		// toogle 직접 사용하지 말자.
+		ToggleButton toggleButton = (ToggleButton) findViewById(R.id.toggleButton1);
+		exif.setAttribute(ExifInterface.TAG_ORIENTATION, String.valueOf(OrientationToExif(mOrientation, !toggleButton.isChecked())));
+		
+		
+		
+		try {
+			exif.saveAttributes();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return exif;
+		
+	}
+	
+	
+	private int OrientationToExif(int orientation, boolean isFace) {		
+		int result;
+		
+		switch (orientation) {
+		case 0:
+			result = ExifInterface.ORIENTATION_NORMAL;
+			break;
+		case 90:
+			if(isFace) {
+				result = ExifInterface.ORIENTATION_ROTATE_270;
+			} else {
+				result = ExifInterface.ORIENTATION_ROTATE_90;
+			}
+			
+			break;
+		case 180:
+			result = ExifInterface.ORIENTATION_ROTATE_180;
+			break;
+		case 270:
+			if(isFace) {
+				result = ExifInterface.ORIENTATION_ROTATE_90;
+			} else {
+				result = ExifInterface.ORIENTATION_ROTATE_270;
+			}
+			break;
+		default:
+			result = ExifInterface.ORIENTATION_NORMAL;
+			break;
+		}
+		
+		return result;
+	}
+	
+	private int ExifToOrientation(int exifOrientation) {
+		
+		int degree;
+		
+		switch (exifOrientation) {
+		case ExifInterface.ORIENTATION_NORMAL:
+			degree = 0;
+			break;
+		case ExifInterface.ORIENTATION_ROTATE_90:
+			degree = 90;
+			break;
+		case ExifInterface.ORIENTATION_ROTATE_180:
+			degree = 180;
+			break;
+		case ExifInterface.ORIENTATION_ROTATE_270:
+			degree = 270;
+			break;
+		default:
+			degree = 0;
+			break;
+		}
+		
+		return degree;
+	}
+	
 }
