@@ -124,7 +124,6 @@ public class ReferenceImage {
         	matrix.setScale(scale, scale);
         }
 		
-		
 		Bitmap image = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, false);
 		
 		mImageView.setImageBitmap(image);

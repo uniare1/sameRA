@@ -62,6 +62,7 @@ public class MainActivity extends Activity implements OnClickListener
 	private final static String TAG = "MainActivity";
 	
 	private final static String ROOT_DIR = "sameRA";
+	private final static int REQ_SELECT_PHOTO = 0;
 	
 	private Camera mCamera;
 	private CameraPreview mPreview;
@@ -76,6 +77,7 @@ public class MainActivity extends Activity implements OnClickListener
 	
 	private OrientationEventListener mOrientationEventListener;
 	private int mOrientation;
+	private static boolean mIsRequetingImage = false;
 	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -167,15 +169,15 @@ public class MainActivity extends Activity implements OnClickListener
 //        		, pendingIntent);     
 
         
-    	selectImage();
+//    	selectImage();
         
     }
     
     
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-    	
-    	if(requestCode == 0) {
+    	mIsRequetingImage = false;
+    	if(requestCode == REQ_SELECT_PHOTO) {
     		int width = LayoutParams.MATCH_PARENT, height = LayoutParams.MATCH_PARENT;
     		ImageView imageView = (ImageView) findViewById(R.id.imageView1);
     		
@@ -239,6 +241,8 @@ public class MainActivity extends Activity implements OnClickListener
     protected void onStart() {
     	super.onStart();
     	Log.d(TAG, "onStart");
+    	
+    	selectImage();	
     }
     
     @Override
@@ -336,7 +340,10 @@ public class MainActivity extends Activity implements OnClickListener
     private void selectImage () {
     	Intent intent = new Intent(Intent.ACTION_PICK);
     	intent.setType("image/*");
-    	startActivityForResult(intent, 0);
+    	if(mIsRequetingImage == false && startActivityIfNeeded(intent, 0)) {
+    		mIsRequetingImage = true;    		
+    	}
+    	
     }
     
     private boolean checkCameraHardware(Context context) {    	
