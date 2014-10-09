@@ -507,11 +507,7 @@ public class MainActivity extends Activity implements OnClickListener
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		int exifOrientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, 0);
-		int degree = ExifToOrientation(exifOrientation);
-		
 
-		
 		return BitmapFactory.decodeFile(path);
 	}
 
@@ -528,6 +524,8 @@ public class MainActivity extends Activity implements OnClickListener
 	
 	private class SavePictureAsync extends AsyncTask<byte[], Integer, Boolean> {
 
+		private ExifInterface mExif;
+		
 		@Override
 		protected Boolean doInBackground(byte[]... params) {
 			
@@ -550,9 +548,9 @@ public class MainActivity extends Activity implements OnClickListener
 				e.printStackTrace();
 			}
 			
-			ExifInterface exif = writeEXIF(path, mLocation);
+			mExif = writeEXIF(path, mLocation);
 
-			String dateTime = exif.getAttribute(ExifInterface.TAG_DATETIME);
+			String dateTime = mExif.getAttribute(ExifInterface.TAG_DATETIME);
 			long time = 0;
 			try {
 				time = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.getDefault()).parse(dateTime).getTime();
@@ -566,7 +564,7 @@ public class MainActivity extends Activity implements OnClickListener
 			values.put(MediaStore.Images.Media.LATITUDE, mLocation.getLatitude());
 			values.put(MediaStore.Images.Media.LONGITUDE, mLocation.getLongitude());
 			values.put(MediaStore.Images.Media.DATE_TAKEN, time);
-			values.put(MediaStore.Images.Media.ORIENTATION, ExifToOrientation(Integer.decode(exif.getAttribute(ExifInterface.TAG_ORIENTATION))));
+			values.put(MediaStore.Images.Media.ORIENTATION, ExifToOrientation(Integer.decode(mExif.getAttribute(ExifInterface.TAG_ORIENTATION))));
 			
 			getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
 			
@@ -578,6 +576,8 @@ public class MainActivity extends Activity implements OnClickListener
 //			super.onPostExecute(result);
 			Log.d("MainActivity", "onPostExecute");
 	        Bitmap bitmap = getImage(mLocation, 1);
+	        mReferenceImage.setExif(mExif);
+	        mReferenceImage.setFace(!((ToggleButton) findViewById(R.id.toggleButton1)).isChecked());
 	        mReferenceImage.setImageBitmap(bitmap);			
 		}		
 	}

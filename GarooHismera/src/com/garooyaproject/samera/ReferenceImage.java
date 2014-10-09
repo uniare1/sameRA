@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.drawable.Drawable;
+import android.media.ExifInterface;
 import android.util.Log;
 import android.view.View.OnClickListener;
 import android.view.View.OnLongClickListener;
@@ -19,6 +20,8 @@ public class ReferenceImage {
 	private Point mScreenSize;
 	private LayoutParams mLayoutParams;
 	private boolean mIsSmallView = true;
+	private ExifInterface mExifInterface;
+	private boolean mIsFace = false;
 	
 	public ReferenceImage (ImageView imageView, Point size) {
 		mImageView = imageView;
@@ -81,6 +84,14 @@ public class ReferenceImage {
 		mImageView.setOnLongClickListener(listener);
 	}
 	
+	public void setExif(ExifInterface exif) {
+		mExifInterface = exif;
+	}
+	
+	public void setFace(boolean isFace) {
+		mIsFace = isFace;
+	}
+	
 	public void setImageBitmap(Bitmap bitmap) {
 		
 		if(bitmap == null) {
@@ -92,14 +103,57 @@ public class ReferenceImage {
         float x = (float) mScreenSize.x / (float) bitmap.getWidth();
         float scale = Math.max(y, x);
         
+        
+        
         Matrix matrix = new Matrix();
-        matrix.setScale(scale, scale);
+        
+        float degree = 0;
         if(bitmap.getHeight() > bitmap.getWidth()) {
-        	matrix.setRotate(-90);
+        	degree = -90;
         }
-        Bitmap image = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, false);
+        
+		int exifOrientation = mExifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, 0);
+		degree += ExifToOrientation(exifOrientation);
+		if(degree != 0) {
+			matrix.setRotate(degree);
+		}
+
+        if(mIsFace) {        
+        		matrix.setScale(-scale, scale);
+        } else {
+        	matrix.setScale(scale, scale);
+        }
+		
+		
+		Bitmap image = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, false);
 		
 		mImageView.setImageBitmap(image);
 		mImageView.invalidate();
 	}
+	
+	private int ExifToOrientation(int exifOrientation) {
+		
+		int degree;
+		
+		switch (exifOrientation) {
+		case ExifInterface.ORIENTATION_NORMAL:
+			degree = 0;
+			break;
+		case ExifInterface.ORIENTATION_ROTATE_90:
+			degree = 0;
+			break;
+		case ExifInterface.ORIENTATION_ROTATE_180:
+			degree = 0;
+			break;
+		case ExifInterface.ORIENTATION_ROTATE_270:
+			degree = 180;
+			break;
+		default:
+			degree = 0;
+			break;
+		}
+		
+		return degree;
+	}
+	
 }
