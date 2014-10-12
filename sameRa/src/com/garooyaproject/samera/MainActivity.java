@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -45,6 +46,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnLongClickListener;
 import android.view.View.OnTouchListener;
+import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 import android.widget.FrameLayout;
@@ -154,12 +156,12 @@ public class MainActivity extends Activity implements OnClickListener
         
         
         // TODO: has to change
-        // «ÿ¥Á ¿ßƒ°ø° ¿÷¥¬ ±‚¡∏¿« ªÁ¡¯
+        // ÔøΩÿ¥ÔøΩ ÔøΩÔøΩƒ°ÔøΩÔøΩ ÔøΩ÷¥ÔøΩ ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ ÔøΩÔøΩÔøΩÔøΩ
 //        Bitmap bitmap = getImage(mLocation, 1);
 //        mReferenceImage.setImageBitmap(bitmap);
         
         // TODO: setting alarm
-        // bootingΩ√ µø¿€, intentπﬁ¿ª ∞˜?
+        // bootingÔøΩÔøΩ ÔøΩÔøΩÔøΩÔøΩ, intentÔøΩÔøΩÔøΩÔøΩ ÔøΩÔøΩ?
 //        Intent intent = new Intent(this, com.garooyaproject.samera.AlarmReceiver.class);
 //        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
 //        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
@@ -169,7 +171,7 @@ public class MainActivity extends Activity implements OnClickListener
 //        		, pendingIntent);     
 
         
-//    	selectImage();
+    	selectImage();
         
     }
     
@@ -180,6 +182,8 @@ public class MainActivity extends Activity implements OnClickListener
     	if(requestCode == REQ_SELECT_PHOTO) {
     		int width = LayoutParams.MATCH_PARENT, height = LayoutParams.MATCH_PARENT;
     		ImageView imageView = (ImageView) findViewById(R.id.imageView1);
+    		FrameLayout frameLayout = (FrameLayout) findViewById(R.id.camera_preview);
+    		LayoutParams layoutParams = null;
     		
     		if(resultCode == RESULT_OK) {
     			Uri uri = data.getData();
@@ -194,11 +198,17 @@ public class MainActivity extends Activity implements OnClickListener
                 cursor.close();
 
                 Bitmap bitmap = BitmapFactory.decodeFile(filePath);
+                try {
+					mReferenceImage.setExif(new ExifInterface(filePath));
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
     			mReferenceImage.setImageBitmap(bitmap);
         		height = imageView.getDrawable().getIntrinsicHeight();
         		width = imageView.getDrawable().getIntrinsicWidth();
         		
-        		// camera preview size ∞·¡§
+        		// camera preview size ÔøΩÔøΩÔøΩÔøΩ
     			float imgRatio = (float) width/ (float)height;			
     			Rect previewRect = new Rect(0, 0, 0, 1);
     			
@@ -217,22 +227,15 @@ public class MainActivity extends Activity implements OnClickListener
     					previewRect.bottom = size.height;
     				}
     			}
+    			layoutParams = getProperLayoutPrarms(frameLayout, previewRect);
     			
-    			Point screenSize = new Point(0, 0);
-    	        getWindowManager().getDefaultDisplay().getSize(screenSize);
-    			
-    			width = (int) (screenSize.y * ((float) previewRect.right / (float) previewRect.bottom));
-    			height = screenSize.y;
-        		
     		} else {
     			mReferenceImage.setImageBitmap(null);
+    			layoutParams = frameLayout.getLayoutParams();
+    			layoutParams.height = height;
+    			layoutParams.width = width;
     		}
-
-    		FrameLayout frameLayout = (FrameLayout) findViewById(R.id.camera_preview);
-    		LayoutParams lp = frameLayout.getLayoutParams();
-    		lp.height = height;
-    		lp.width = width;
-    		frameLayout.setLayoutParams(lp);
+    		frameLayout.setLayoutParams(layoutParams);
     	}
 
     }
@@ -241,8 +244,6 @@ public class MainActivity extends Activity implements OnClickListener
     protected void onStart() {
     	super.onStart();
     	Log.d(TAG, "onStart");
-    	
-    	selectImage();	
     }
     
     @Override
@@ -314,10 +315,27 @@ public class MainActivity extends Activity implements OnClickListener
         
         
         // resolution
+        // TODO: previewÏôÄ matchÎêòÎäîsizeÎ°ú ÏÑ†ÌÉù
+        // check preview size.
         cameraParams.setJpegQuality(100);
         List<Camera.Size> sizes = cameraParams.getSupportedPictureSizes();
-        Camera.Size size = sizes.get(0);
+        Camera.Size size = getProperPictureSize(sizes);
         cameraParams.setPictureSize(size.width, size.height);
+        
+        //////// to get camera information/////////        
+        Log.d(TAG, "Supported Preview sizes");
+        
+        for(Camera.Size s : mPreviewSizes) {
+        	Log.d(TAG, "width = " + s.width + ", height = " + s.height);
+        }
+        
+        Log.d(TAG, "Supported Sizes");
+        
+        for(Camera.Size s : sizes) {
+        	Log.d(TAG, "width = " + s.width + ", height = " + s.height);
+        }
+        ///////////////////
+        
         
         Log.d("Supported Resolution", size.width + "x" + size.height);
         
@@ -332,9 +350,55 @@ public class MainActivity extends Activity implements OnClickListener
         mPreview = new CameraPreview(this, mCamera);
         mPreview.setFitsSystemWindows(false);
         
-        FrameLayout fl = (FrameLayout) findViewById(R.id.camera_preview);
-        fl.removeAllViews();
-        fl.addView(mPreview);
+        FrameLayout frameLayout = (FrameLayout) findViewById(R.id.camera_preview);
+        
+//		LayoutParams lp = frameLayout.getLayoutParams();
+//		
+//		Point screenSize = new Point(0, 0);
+//        getWindowManager().getDefaultDisplay().getSize(screenSize);
+//		
+//		int width = (int) (screenSize.y * ((float) size.width / (float) size.height));
+//		int height = screenSize.y;
+//		
+//		lp.height = height;
+//		lp.width = width;
+		frameLayout.setLayoutParams(getProperLayoutPrarms(frameLayout, new Rect(0, 0, size.width, size.height)));
+        
+		frameLayout.removeAllViews();
+		frameLayout.addView(mPreview);
+    }
+    
+    private Camera.Size getProperPictureSize(List<Camera.Size> sizes) {
+    	
+    	List <Float> previewRatios = new ArrayList<Float>();
+    	for(Camera.Size preview : mPreviewSizes) {
+    		previewRatios.add(((float)preview.width / preview.height));
+    	}
+    	
+    	for(Camera.Size size : sizes) {    		
+    		for(float ratio : previewRatios) {
+        		if(((float) size.width /  size.height) == ratio) {
+        			return size;
+        		}
+    		}   		
+    	}
+    	
+    	return sizes.get(0);
+    }
+    
+    private LayoutParams getProperLayoutPrarms(ViewGroup viewGroup, Rect rect) {
+		LayoutParams layoutParmas = viewGroup.getLayoutParams();
+		
+		Point screenSize = new Point(0, 0);
+        getWindowManager().getDefaultDisplay().getSize(screenSize);
+		
+		int width = (int) (screenSize.y * ((float) rect.width() / (float) rect.height()));
+		int height = screenSize.y;
+		
+		layoutParmas.height = height;
+		layoutParmas.width = width;
+		
+		return layoutParmas;
     }
     
     private void selectImage () {
@@ -481,8 +545,8 @@ public class MainActivity extends Activity implements OnClickListener
 	
 	private Bitmap getImage(Location location, double radius) {
 		
-		// radius ¥‹¿ß?
-		// 0µµ¿œ∂ß???
+		// radius ÔøΩÔøΩÔøΩÔøΩ?
+		// 0ÔøΩÔøΩÔøΩœ∂ÔøΩ???
 		String where = "latitude < " + String.valueOf(location.getLatitude() + radius) + 
 				" AND latitude > " + String.valueOf(location.getLatitude() - radius)
 				+ " AND longitude < " + String.valueOf(location.getLongitude() + radius) + 
@@ -506,7 +570,7 @@ public class MainActivity extends Activity implements OnClickListener
 		String path = cursor.getString(1);		
 		cursor.close();
 		
-		// TODO: exif πŸ≈¡¿∏∑Œ rotation
+		// TODO: exif ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ rotation
 		ExifInterface exif = null;
 		try {
 			exif = new ExifInterface(path);
@@ -631,15 +695,10 @@ public class MainActivity extends Activity implements OnClickListener
 		} else {
 		exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, "W");
 		}
-		
-		
-		// TODO: ∏‚πˆ ∫Øºˆ ªÁøÎ«œ¡ˆ ∏ª¿⁄.
-		// toogle ¡˜¡¢ ªÁøÎ«œ¡ˆ ∏ª¿⁄.
+
 		ToggleButton toggleButton = (ToggleButton) findViewById(R.id.toggleButton1);
 		exif.setAttribute(ExifInterface.TAG_ORIENTATION, String.valueOf(OrientationToExif(mOrientation, !toggleButton.isChecked())));
-		
-		
-		
+				
 		try {
 			exif.saveAttributes();
 		} catch (IOException e) {
