@@ -81,13 +81,17 @@ public class MainActivity extends Activity implements OnClickListener
 	private int mOrientation;
 	private static boolean mIsRequetingImage = false;
 	
+	private FileManager mFileManager;
+	
+	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
-        // Orientation
+        mFileManager = new FileManager(null);        
         
+        // Orientation        
         mOrientationEventListener = new OrientationEventListener(this) {
 			
 			@Override
@@ -197,6 +201,7 @@ public class MainActivity extends Activity implements OnClickListener
                 String filePath = cursor.getString(columnIndex);
                 cursor.close();
 
+                mFileManager = new FileManager(filePath);
                 Bitmap bitmap = BitmapFactory.decodeFile(filePath);
                 try {
 					mReferenceImage.setExif(new ExifInterface(filePath));
@@ -229,7 +234,7 @@ public class MainActivity extends Activity implements OnClickListener
     			}
     			layoutParams = getProperLayoutPrarms(frameLayout, previewRect);
     			
-    		} else {
+    		} else {    			
     			mReferenceImage.setImageBitmap(null);
     			layoutParams = frameLayout.getLayoutParams();
     			layoutParams.height = height;
@@ -427,34 +432,35 @@ public class MainActivity extends Activity implements OnClickListener
 			Log.d("MainActivity", "onPictureTaken");
 			
 			camera.startPreview();
-			SavePictureAsync save = new SavePictureAsync();
+			SavePictureAsync save = new SavePictureAsync(mFileManager);
 			save.execute(data);
 			
 		}
 	};
 	
-	private static File getOutputMediaFile() {
-		File mediaStorageDir =  new File(
-				Environment.getExternalStoragePublicDirectory(
-						Environment.DIRECTORY_PICTURES), ROOT_DIR);
-		if(!mediaStorageDir.exists()) {
-			if(!mediaStorageDir.mkdirs()) {
-				return null;
-			}
-		}
-		
-		String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-		File mediaFile = new File(mediaStorageDir, timeStamp + ".jpg");
-		
-		try {
-			mediaFile.createNewFile();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		return mediaFile;
-	}
+//	private static File getOutputMediaFile() {
+//		File mediaStorageDir =  new File(
+//				Environment.getExternalStoragePublicDirectory(
+//						Environment.DIRECTORY_PICTURES), ROOT_DIR);
+//		if(!mediaStorageDir.exists()) {
+//			if(!mediaStorageDir.mkdirs()) {
+//				return null;
+//			}
+//		}
+//		
+//
+//		String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+//		File mediaFile = new File(mediaStorageDir, timeStamp + ".jpg");
+//		
+//		try {
+//			mediaFile.createNewFile();
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		
+//		return mediaFile;
+//	}
 
 	@Override
 	public boolean onTouch(View v, MotionEvent event) {
@@ -596,6 +602,11 @@ public class MainActivity extends Activity implements OnClickListener
 	private class SavePictureAsync extends AsyncTask<byte[], Integer, Boolean> {
 
 		private ExifInterface mExif;
+		private FileManager mFileManager;
+		
+		public SavePictureAsync(FileManager fileManager) {
+			mFileManager = fileManager;
+		}
 		
 		@Override
 		protected Boolean doInBackground(byte[]... params) {
@@ -603,7 +614,10 @@ public class MainActivity extends Activity implements OnClickListener
 			Log.d("MainActivity", "doInBackground");
 			
 			
-			File pictureFile = getOutputMediaFile();
+			File pictureFile = mFileManager.createChild();
+			if(mFileManager.getFile() == null) {
+				mFileManager.setFile(pictureFile);
+			}
 			
 			String path = pictureFile.getAbsolutePath();
 
@@ -646,7 +660,8 @@ public class MainActivity extends Activity implements OnClickListener
 		protected void onPostExecute(Boolean result) {
 //			super.onPostExecute(result);
 			Log.d("MainActivity", "onPostExecute");
-	        Bitmap bitmap = getImage(mLocation, 1);
+//	        Bitmap bitmap = getImage(mLocation, 1);
+			Bitmap bitmap = BitmapFactory.decodeFile(mFileManager.getChildFile().getAbsolutePath());
 	        mReferenceImage.setExif(mExif);
 	        mReferenceImage.setFace(!((ToggleButton) findViewById(R.id.toggleButton1)).isChecked());
 	        mReferenceImage.setImageBitmap(bitmap);			
